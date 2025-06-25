@@ -1,0 +1,937 @@
+{
+  "name": "I2A2",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um especialista contábil e financeiro altamente qualificado.  \nSua principal função é analisar, calcular e responder dúvidas do usuário com base nas **notas fiscais** disponíveis na base de conhecimento conectada, chamada `notas`.\n\nAo responder, siga estas orientações:\n\n1. Leia atentamente a **pergunta do usuário**.\n2. Consulte a base de conhecimento `notas2` para obter os dados necessários.\n3. Aplique os **cálculos ou filtros adequados** com base na pergunta (ex: somar valores de notas, filtrar por mês, categoria, empresa, CFOP, impostos, etc.).\n4. **Explique sempre a linha de raciocínio completa** usada para chegar à resposta. Isso inclui:\n   - Quais dados foram considerados.\n   - Quais filtros ou condições aplicou.\n   - Qual foi o passo a passo do cálculo.\n   - Quais foram os critérios para interpretação.\n5. Após a explicação, apresente a **resposta final** com os dados relevantes e, se necessário, use linguagem simples para facilitar a compreensão.\n6. Se faltar alguma informação para uma resposta precisa, explique o que está faltando e oriente o usuário sobre como complementar a pergunta.\n\n⚠️ Nunca invente informações. Utilize apenas os dados da base `notas2` e o contexto fornecido pelo usuário.\n\n---\n\nExemplo de estrutura de resposta esperada:\n\n**🧠 Linha de raciocínio utilizada:**  \n1. Filtrei as notas fiscais do mês de abril de 2025.  \n2. Considerei apenas as notas com CFOPs de venda (5.102, 5.105).  \n3. Somei os valores dos campos `valor_total` das notas filtradas.  \n4. O valor total resultante foi R$ 32.584,90.\n\n**✅ Resposta final:**  \nO total de vendas em abril de 2025 foi de **R$ 32.584,90** considerando apenas as notas de venda (CFOPs 5.102 e 5.105).\n\n---\n\nAgora, aguarde a **pergunta do usuário** para iniciar a análise.\n{{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "Responda utilizando só o banco de dados conectando em tools"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1040,
+        -460
+      ],
+      "id": "1d6d317c-8f75-46b5-b345-5295fdda7703",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro-preview-06-05",
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -280
+      ],
+      "id": "3873b9ac-bbd2-4eec-bfac-2d782ef79d49",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rI5BycfnKqywfRhS",
+          "name": "AIGemini"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1140,
+        -180
+      ],
+      "id": "22cd35c5-dd92-41c0-8c6c-dea36f4695c8",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Olá, faça perguntas sobre as notas como por exemplo:\nValor total para o CFOP 6906\nValor total para o NCM 49019900",
+        "options": {
+          "responseMode": "lastNode",
+          "subtitle": "Faça perguntas sobre notas fiscais",
+          "title": "Agente IntelligenceI2A2 - Notas"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        -460
+      ],
+      "id": "78af77fe-07dd-4578-a967-a22459b2f8c6",
+      "name": "When chat message received",
+      "webhookId": "71059789-4211-4fbd-9dbe-1ce157c664f3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "NotasI2A2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        40
+      ],
+      "id": "7941e48e-8ea9-4fea-acdc-99f12fcd8262",
+      "name": "Webhook",
+      "webhookId": "8ae219db-6b86-46ef-9853-70a3ab384ca5"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "function_name"
+            },
+            {
+              "name": "payload",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "bf115128-1f17-4cd4-828c-0485f3f85a22",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1640,
+        20
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e36e1143-5742-40b5-b991-bc1401aa27fc",
+                    "leftValue": "={{ $json.function_name }}",
+                    "rightValue": "Notas",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Notas"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "36e83249-8cae-4a67-b32b-f167f135461d",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        1880,
+        20
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dKvPAEiwNH7WtAckXgLUduUbshtq1paj9Sk3zkMuqM0",
+          "mode": "list",
+          "cachedResultName": "202401_NFs_Cabecalho",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dKvPAEiwNH7WtAckXgLUduUbshtq1paj9Sk3zkMuqM0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 163108193,
+          "mode": "list",
+          "cachedResultName": "202401_NFs_Cabecalho",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dKvPAEiwNH7WtAckXgLUduUbshtq1paj9Sk3zkMuqM0/edit#gid=163108193"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2240,
+        -100
+      ],
+      "id": "34cbc300-8b19-432d-94f1-c5500ef4daf2",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6KwIGY7qQ3PwdpxR",
+          "name": "Google - agendatecpet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1QB4-TtiJ9WwL8k1WGCuXFy_XYQ1tDJgIPsWpA0Qmsec",
+          "mode": "list",
+          "cachedResultName": "202401_NFs_Itens",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QB4-TtiJ9WwL8k1WGCuXFy_XYQ1tDJgIPsWpA0Qmsec/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1838925440,
+          "mode": "list",
+          "cachedResultName": "202401_NFs_Itens",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QB4-TtiJ9WwL8k1WGCuXFy_XYQ1tDJgIPsWpA0Qmsec/edit#gid=1838925440"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2240,
+        180
+      ],
+      "id": "d1dfaef1-c4b8-49bd-83ed-55e954a81ab7",
+      "name": "Google Sheets2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6KwIGY7qQ3PwdpxR",
+          "name": "Google - agendatecpet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "bd6d1062-8b32-478b-b8cb-a5ae4c3dea3b"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        -440
+      ],
+      "id": "5d1d45a2-ac4f-4672-8845-e869aef317c6",
+      "name": "MCP Server Trigger",
+      "webhookId": "bd6d1062-8b32-478b-b8cb-a5ae4c3dea3b"
+    },
+    {
+      "parameters": {
+        "name": "Notas",
+        "description": "Call this tool para pegar todas as informações das notas fiscais",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "function_name": "={{ $fromAI(\"function_name\", \"Notas\", \"string\") }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "function_name",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "function_name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payload",
+              "type": "object",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "payload",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "67cf9df5-0f21-42eb-973e-4976ab44928b",
+      "name": "Notas",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "position": [
+        1880,
+        -200
+      ],
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "sseEndpoint": "https://n8n2.tec.pet/mcp/bd6d1062-8b32-478b-b8cb-a5ae4c3dea3b/sse",
+        "include": "selected",
+        "includeTools": [
+          "Notas"
+        ]
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        -220
+      ],
+      "id": "37441a52-4ede-429d-b2f4-eb3233ef8466",
+      "name": "Notas2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1QB4-TtiJ9WwL8k1WGCuXFy_XYQ1tDJgIPsWpA0Qmsec",
+          "mode": "list",
+          "cachedResultName": "202401_NFs_Itens",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QB4-TtiJ9WwL8k1WGCuXFy_XYQ1tDJgIPsWpA0Qmsec/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1183445143,
+          "mode": "list",
+          "cachedResultName": "WebHook",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QB4-TtiJ9WwL8k1WGCuXFy_XYQ1tDJgIPsWpA0Qmsec/edit#gid=1183445143"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "CHAVE DE ACESSO"
+          ],
+          "schema": [
+            {
+              "id": "CHAVE DE ACESSO",
+              "displayName": "CHAVE DE ACESSO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MODELO",
+              "displayName": "MODELO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SÉRIE",
+              "displayName": "SÉRIE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NÚMERO",
+              "displayName": "NÚMERO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NATUREZA DA OPERAÇÃO",
+              "displayName": "NATUREZA DA OPERAÇÃO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DATA EMISSÃO",
+              "displayName": "DATA EMISSÃO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CPF/CNPJ Emitente",
+              "displayName": "CPF/CNPJ Emitente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RAZÃO SOCIAL EMITENTE",
+              "displayName": "RAZÃO SOCIAL EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INSCRIÇÃO ESTADUAL EMITENTE",
+              "displayName": "INSCRIÇÃO ESTADUAL EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UF EMITENTE",
+              "displayName": "UF EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MUNICÍPIO EMITENTE",
+              "displayName": "MUNICÍPIO EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CNPJ DESTINATÁRIO",
+              "displayName": "CNPJ DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NOME DESTINATÁRIO",
+              "displayName": "NOME DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UF DESTINATÁRIO",
+              "displayName": "UF DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INDICADOR IE DESTINATÁRIO",
+              "displayName": "INDICADOR IE DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DESTINO DA OPERAÇÃO",
+              "displayName": "DESTINO DA OPERAÇÃO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CONSUMIDOR FINAL",
+              "displayName": "CONSUMIDOR FINAL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PRESENÇA DO COMPRADOR",
+              "displayName": "PRESENÇA DO COMPRADOR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NÚMERO PRODUTO",
+              "displayName": "NÚMERO PRODUTO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DESCRIÇÃO DO PRODUTO/SERVIÇO",
+              "displayName": "DESCRIÇÃO DO PRODUTO/SERVIÇO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CÓDIGO NCM/SH",
+              "displayName": "CÓDIGO NCM/SH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NCM/SH (TIPO DE PRODUTO)",
+              "displayName": "NCM/SH (TIPO DE PRODUTO)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CFOP",
+              "displayName": "CFOP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "QUANTIDADE",
+              "displayName": "QUANTIDADE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UNIDADE",
+              "displayName": "UNIDADE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "VALOR UNITÁRIO",
+              "displayName": "VALOR UNITÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "VALOR TOTAL",
+              "displayName": "VALOR TOTAL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CHAVE DE ACESSO",
+              "displayName": "CHAVE DE ACESSO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MODELO",
+              "displayName": "MODELO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "SÉRIE",
+              "displayName": "SÉRIE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NÚMERO",
+              "displayName": "NÚMERO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NATUREZA DA OPERAÇÃO",
+              "displayName": "NATUREZA DA OPERAÇÃO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DATA EMISSÃO",
+              "displayName": "DATA EMISSÃO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "EVENTO MAIS RECENTE",
+              "displayName": "EVENTO MAIS RECENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DATA/HORA EVENTO MAIS RECENTE",
+              "displayName": "DATA/HORA EVENTO MAIS RECENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CPF/CNPJ Emitente",
+              "displayName": "CPF/CNPJ Emitente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RAZÃO SOCIAL EMITENTE",
+              "displayName": "RAZÃO SOCIAL EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INSCRIÇÃO ESTADUAL EMITENTE",
+              "displayName": "INSCRIÇÃO ESTADUAL EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UF EMITENTE",
+              "displayName": "UF EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MUNICÍPIO EMITENTE",
+              "displayName": "MUNICÍPIO EMITENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CNPJ DESTINATÁRIO",
+              "displayName": "CNPJ DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NOME DESTINATÁRIO",
+              "displayName": "NOME DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UF DESTINATÁRIO",
+              "displayName": "UF DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "INDICADOR IE DESTINATÁRIO",
+              "displayName": "INDICADOR IE DESTINATÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DESTINO DA OPERAÇÃO",
+              "displayName": "DESTINO DA OPERAÇÃO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CONSUMIDOR FINAL",
+              "displayName": "CONSUMIDOR FINAL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PRESENÇA DO COMPRADOR",
+              "displayName": "PRESENÇA DO COMPRADOR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "VALOR NOTA FISCAL",
+              "displayName": "VALOR NOTA FISCAL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1220,
+        40
+      ],
+      "id": "a4c50f5d-6dd6-43e5-914d-b484e772e266",
+      "name": "Google Sheets3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6KwIGY7qQ3PwdpxR",
+          "name": "Google - agendatecpet"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notas": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notas2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "62349a21-4279-4c5b-a6be-1cb357300d57",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dedb84941964e0a7bcec2db806f0264b6b88bdd7ab2edb6e31ff1ec69a716842"
+  },
+  "id": "DTJsxAXFOLrXukK9",
+  "tags": []
+}

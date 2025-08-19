@@ -3,6 +3,72 @@ Repositório para elaboração dos projetos do Grupo 2 - IntelligenceI2A2, do cu
 
 ---
 
+# Desafio 04 - Processador de VR
+
+Este projeto realiza o processamento de dados de colaboradores para cálculo de valores de Vale Refeição (VR) de acordo com regras de negócio específicas, utilizando planilhas Excel como entrada e gerando um relatório consolidado em Excel como saída.
+
+## Estrutura do Projeto
+
+- `main.py`: Ponto de entrada do sistema. Orquestra o carregamento, limpeza e processamento dos dados.
+- `carregamento.py`: Responsável por carregar e limpar as planilhas de entrada.
+- `processamento.py`: Implementa as regras de negócio e cálculos do VR.
+- Planilhas de entrada (devem estar na pasta informada via parâmetro):
+  - `ATIVOS.xlsx`
+  - `ADMISSÃO ABRIL.xlsx`
+  - `FÉRIAS.xlsx`
+  - `DESLIGADOS.xlsx`
+  - `AFASTAMENTOS.xlsx`
+  - `APRENDIZ.xlsx`
+  - `ESTÁGIO.xlsx`
+  - `EXTERIOR.xlsx`
+  - `Base dias uteis.xlsx`
+  - `Base sindicato x valor.xlsx`
+
+## Requisitos
+
+- Python 3.8 ou superior
+- Pandas
+- Numpy
+- (Opcional) Ambiente virtual para isolamento dos pacotes
+
+## Instalação
+
+1. Clone o repositório ou copie os arquivos para uma pasta local.
+2. Instale as dependências:
+   ```bash
+   pip install pandas numpy
+   ```
+
+## Como Executar
+
+1. Certifique-se de que todas as planilhas de entrada estejam na mesma pasta.
+2. Execute o script principal informando o diretório das planilhas e o caminho do arquivo de saída:
+
+   ```bash
+   python main.py --base-dir /caminho/para/planilhas --out /caminho/para/saida.xlsx
+   ```
+
+   - `--base-dir`: Caminho para a pasta onde estão as planilhas de entrada.
+   - `--out`: Caminho completo do arquivo Excel de saída que será gerado.
+
+## Fluxo do Programa
+
+1. **Carregamento:** As planilhas são carregadas e limpas pelo módulo `carregamento.py`.
+2. **Processamento:** O módulo `processamento.py` aplica as regras de negócio, realiza cálculos de dias e valores de VR, e gera o DataFrame final.
+3. **Saída:** O relatório consolidado é salvo em Excel no caminho especificado.
+
+## Observações
+
+- O projeto está modularizado e orientado a objetos para facilitar manutenção e testes.
+- Caso alguma planilha esteja com formato diferente, ajuste os métodos de limpeza no arquivo `carregamento.py`.
+- Para dúvidas sobre regras de negócio, consulte os comentários/documentação das classes e métodos.
+
+## Licença
+
+Este projeto é apenas para fins de estudo/desafio.
+
+---
+
 # Desafio 02 - Agentes Autônomos – Análise de CSV
 
 ```mermaid

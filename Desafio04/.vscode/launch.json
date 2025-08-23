@@ -11,7 +11,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
-            "args": ["--base-dir", "dados/", "--out", "saida/saida.xlsx"]
+            "args": [
+                "--model", "/home/matheus/modelos/mistral-7b-instruct-v0.2.Q2_K.gguf",
+                "--base-dir", "dados/", 
+                "--out", "saida/VR_MENSAL_CALCULADA.xlsx"]
         }
     ]
 }

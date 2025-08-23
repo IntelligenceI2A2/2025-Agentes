@@ -3,16 +3,18 @@ Repositório para elaboração dos projetos do Grupo 2 - IntelligenceI2A2, do cu
 
 ---
 
-# Desafio 04 - Processador de VR
+# Desafio 04 - Agente de Processamento de VR
 
-Este projeto realiza o processamento de dados de colaboradores para cálculo de valores de Vale Refeição (VR) de acordo com regras de negócio específicas, utilizando planilhas Excel como entrada e gerando um relatório consolidado em Excel como saída.
+Este projeto implementa um agente inteligente para processamento de dados de Vale Refeição (VR) utilizando modelos LLM (LLaMA/Mistral) e o framework LangChain. O agente automatiza a leitura, validação e processamento de planilhas Excel, gerando relatórios mensais de VR.
 
 ## Estrutura do Projeto
 
-- `main.py`: Ponto de entrada do sistema. Orquestra o carregamento, limpeza e processamento dos dados.
+- `main.py`: Ponto de entrada do sistema.
+- `agente_vr.py`: Implementação do agente LLM com ferramentas estruturadas.
 - `carregamento.py`: Responsável por carregar e limpar as planilhas de entrada.
 - `processamento.py`: Implementa as regras de negócio e cálculos do VR.
 - Planilhas de entrada (devem estar na pasta informada via parâmetro):
+- `dados`: Pasta com planilhas de entrada (.xlsx).
   - `ATIVOS.xlsx`
   - `ADMISSÃO ABRIL.xlsx`
   - `FÉRIAS.xlsx`
@@ -23,13 +25,12 @@ Este projeto realiza o processamento de dados de colaboradores para cálculo de 
   - `EXTERIOR.xlsx`
   - `Base dias uteis.xlsx`
   - `Base sindicato x valor.xlsx`
+- `saida`: Pasta de saída para o relatório gerado.
 
 ## Requisitos
 
-- Python 3.8 ou superior
-- Pandas
-- Numpy
-- (Opcional) Ambiente virtual para isolamento dos pacotes
+- Python 3.10+
+- Modelos LLaMA/Mistral em formato GGUF
 
 ## Instalação
 
@@ -45,9 +46,10 @@ Este projeto realiza o processamento de dados de colaboradores para cálculo de 
 2. Execute o script principal informando o diretório das planilhas e o caminho do arquivo de saída:
 
    ```bash
-   python main.py --base-dir /caminho/para/planilhas --out /caminho/para/saida.xlsx
+   python main.py --model /caminho/para/modelo.gguf --base-dir dados/ --out saida/VR_MENSAL_CALCULADA.xlsx
    ```
-
+   
+   - `model`: Caminho para a pasta onde esta o modelo.
    - `--base-dir`: Caminho para a pasta onde estão as planilhas de entrada.
    - `--out`: Caminho completo do arquivo Excel de saída que será gerado.
 
@@ -59,9 +61,9 @@ Este projeto realiza o processamento de dados de colaboradores para cálculo de 
 
 ## Observações
 
-- O projeto está modularizado e orientado a objetos para facilitar manutenção e testes.
-- Caso alguma planilha esteja com formato diferente, ajuste os métodos de limpeza no arquivo `carregamento.py`.
-- Para dúvidas sobre regras de negócio, consulte os comentários/documentação das classes e métodos.
+- O modelo LLaMA/Mistral deve estar disponível no caminho informado.
+
+- Link para realizar o download do modelo: https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF
 
 ## Licença
 

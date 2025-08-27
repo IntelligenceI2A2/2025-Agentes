@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/main.py",
             "console": "integratedTerminal",
             "args": [
-                "--model", "/home/matheus/modelos/mistral-7b-instruct-v0.2.Q2_K.gguf",
+                "--model", "gpt-4o-mini",
                 "--base-dir", "dados/", 
                 "--out", "saida/VR_MENSAL_CALCULADA.xlsx"]
         }

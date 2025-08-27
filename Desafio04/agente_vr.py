@@ -1,141 +1,101 @@
-from processamento import ProcessadorVR
-from carregamento import CarregadorDados
 import os
-from langchain_community.llms import LlamaCpp
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+from langchain.agents import Tool, initialize_agent
+from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+
+from tools_vr import (
+    tool_listar_arquivos,
+    tool_validar_dados,
+    tool_rodar_calculo,
+)
+
+load_dotenv()
+
+SYSTEM_PROMPT = """Você é um agente especializado em folha de pagamento de VR/VA.
+Seu trabalho é:
+1) Listar os arquivos disponíveis na pasta indicada;
+2) Validar se ATIVOS.xlsx contém colunas mínimas;
+3) Rodar o cálculo e gerar a planilha final Excel.
+
+Sempre explique de forma curta o que está fazendo antes de chamar cada ferramenta.
+Se o usuário pedir explicações adicionais (por ex., por que um colaborador ficou com 0 dias), responda
+em linguagem simples, usando o resultado calculado.
+"""
 
 class AgenteVR:
-    def __init__(self, model_path: str):
-        """
-        Implementação LLMChain + Structured Output
-        """
-        self.model_path = model_path
-        self.llm = self._setup_llm()
-        self.output_parser = self._setup_output_parser()
-        self.prompt = self._setup_prompt()
-        self.chain = LLMChain(llm=self.llm, prompt=self.prompt)
+    """Agente especializado em processamento de VR/VA."""
     
-    def _setup_llm(self):
-        """Configura o modelo LLaMA"""
-        return LlamaCpp(
-            model_path=self.model_path,
+    def __init__(self, model_name: str = "gpt-4o-mini"):
+        """
+        Inicializa o agente VR.
+        
+        Args:
+            model_name: Nome do modelo OpenAI a ser utilizado
+        """
+        self.model_name = model_name
+        self.agent = self._build_agente()
+    
+    def _build_agente(self):
+        """Constrói e retorna o agente LangChain."""
+        llm = ChatOpenAI(
+            model=self.model_name,
             temperature=0.1,
-            n_ctx=4096,
-            max_tokens=256,
-            n_gpu_layers=40,
-            n_batch=128,
-            verbose=False,
+            api_key=os.getenv("OPENAI_API_KEY"),
         )
-    
-    def _setup_output_parser(self):
-        """Configura o parser de saída estruturada"""
-        response_schemas = [
-            ResponseSchema(name="thought", description="Breve pensamento do assistente"),
-            ResponseSchema(name="action", description="Ação a ser executada: ListarArquivos, ValidarDados, ProcessarVR"),
-            ResponseSchema(name="action_input", description="Input para a ação, sempre entre aspas")
+        
+        tools = [
+            Tool(
+                name="ListarArquivos",
+                func=tool_listar_arquivos,
+                description="Lista os arquivos .xlsx/.xls existentes na pasta de entrada. Input = caminho da pasta",
+            ),
+            Tool(
+                name="ValidarDados",
+                func=tool_validar_dados,
+                description="Valida se ATIVOS.xlsx contém as colunas mínimas. Input = caminho da pasta",
+            ),
+            Tool(
+                name="CalcularVR",
+                func=tool_rodar_calculo,
+                description="Gera a planilha final VR. Input = 'BASE_DIR|OUT_PATH(opcional)'",
+            ),
         ]
-        return StructuredOutputParser.from_response_schemas(response_schemas)
-    
-    def _setup_prompt(self):
-        """Configura o prompt template"""
-        template = """Você é um assistente especializado em processamento de VR. 
-
-        Ferramentas disponíveis:
-        - ListarArquivos: Lista arquivos Excel. Input: "caminho_da_pasta"
-        - ValidarDados: Valida dados de VR. Input: "caminho_da_pasta"  
-        - ProcessarVR: Processa dados e gera planilha. Input: "caminho_pasta|caminho_saida"
-
-        Siga EXATAMENTE este formato:
-        {format_instructions}
-
-        Exemplos:
-        Pergunta: Liste os arquivos em dados/
-        Resposta: {{"thought": "Preciso listar arquivos", "action": "ListarArquivos", "action_input": "dados/"}}
-
-        Pergunta: Processe os dados de dados/ e salve em saida/saida.xlsx
-        Resposta: {{"thought": "Preciso processar VR", "action": "ProcessarVR", "action_input": "dados/|saida/saida.xlsx"}}
-
-        Pergunta: {input}
-        Resposta:"""
-
-        return PromptTemplate(
-            template=template,
-            input_variables=["input"],
-            partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
+        
+        agent = initialize_agent(
+            tools=tools,
+            llm=llm,
+            agent="zero-shot-react-description",
+            verbose=True,
+            system_message=SYSTEM_PROMPT,
         )
+        return agent
     
-    def _tool_listar_arquivos(self, caminho_pasta: str) -> str:
-        """Lista arquivos Excel"""
-        caminho_pasta = caminho_pasta.strip('"\'')
-        if not os.path.exists(caminho_pasta):
-            return f"Erro: Pasta '{caminho_pasta}' não existe"
+    def listar_arquivos(self, base_dir: str) -> str:
+        """Lista arquivos na pasta especificada."""
+        return self.agent.run(f'Liste os arquivos usando a ferramenta ListarArquivos com a pasta "{base_dir}".')
+    
+    def validar_dados(self, base_dir: str) -> str:
+        """Valida os dados da planilha ATIVOS."""
+        return self.agent.run(f'Valide os dados usando a ferramenta ValidarDados com a pasta "{base_dir}".')
+    
+    def calcular_vr(self, base_dir: str, out_path: str = None) -> str:
+        """Executa o cálculo de VR e gera a planilha final."""
+        if out_path:
+            return self.agent.run(f'Gere a planilha final com a ferramenta CalcularVR usando "{base_dir}|{out_path}"')
+        else:
+            return self.agent.run(f'Gere a planilha final com a ferramenta CalcularVR usando "{base_dir}"')
+    
+    def executar_fluxo_completo(self, base_dir: str, out_path: str = None) -> dict:
+        """
+        Executa o fluxo completo de processamento de VR.
         
-        arquivos = [f for f in os.listdir(caminho_pasta) if f.lower().endswith(('.xlsx', '.xls'))]
-        return f"Arquivos encontrados: {', '.join(arquivos)}"
-    
-    def _tool_validar_dados(self, caminho_pasta: str) -> str:
-        """Valida dados de VR"""
-        caminho_pasta = caminho_pasta.strip('"\'')
-        if not os.path.exists(caminho_pasta):
-            return f"Erro: Pasta '{caminho_pasta}' não existe"
+        Returns:
+            Dict com os resultados de cada etapa
+        """
+        resultados = {}
         
-        arquivos = [f for f in os.listdir(caminho_pasta) if f.lower().endswith(('.xlsx', '.xls'))]
-        return f"Pasta válida com {len(arquivos)} arquivos Excel"
-    
-    def _tool_processar_vr(self, input_str: str) -> str:
-        """Processa dados de VR"""
-        try:
-            if '|' in input_str:
-                base_dir, output_path = input_str.split('|', 1)
-                base_dir = base_dir.strip('"\'')
-                output_path = output_path.strip('"\'')
-            else:
-                base_dir = input_str.strip('"\'')
-                output_path = os.path.join(base_dir, "VR_CALCULADO.xlsx")
-            
-            if not os.path.exists(base_dir):
-                return f"Erro: Pasta '{base_dir}' não existe"
-            
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            
-            carregador = CarregadorDados(base_dir)
-            dados = carregador.carregar_todas_planilhas()
-            dados["dias"] = carregador.limpar_dias_uteis(dados["dias"])
-            dados["deslig"] = carregador.limpar_desligados(dados["deslig_raw"])
-            dados["ext"] = carregador.limpar_exterior(dados["ext_raw"])
-            dados["sxv"] = carregador.limpar_sindicato_valor(dados["sxv"])
-            
-            processador = ProcessadorVR(dados)
-            caminho_saida = processador.processar(output_path)
-            
-            return f"Processamento concluído! Arquivo: {caminho_saida}"
-            
-        except Exception as e:
-            return f"Erro: {str(e)}"
-    
-    def executar_comando(self, comando: str) -> str:
-        """Executa um comando e retorna a resposta da tool"""
-        try:
-            resposta = self.chain.run(input=comando)
-            parsed = self.output_parser.parse(resposta)
-            
-            action = parsed["action"]
-            action_input = parsed["action_input"]
-            
-            print(f"Agente:  {parsed['thought']}")
-            print(f"Executando: {action} com input: {action_input}")
-            
-            # Executa a tool correspondente
-            if action == "ListarArquivos":
-                return self._tool_listar_arquivos(action_input)
-            elif action == "ValidarDados":
-                return self._tool_validar_dados(action_input)
-            elif action == "ProcessarVR":
-                return self._tool_processar_vr(action_input)
-            else:
-                return f"Ação desconhecida: {action}"
-                
-        except Exception as e:
-            return f"Erro: {str(e)}"
+        resultados['listagem'] = self.listar_arquivos(base_dir)
+        resultados['validacao'] = self.validar_dados(base_dir)
+        resultados['calculo'] = self.calcular_vr(base_dir, out_path)
+        
+        return resultados

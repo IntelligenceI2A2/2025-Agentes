@@ -1,5 +1,8 @@
 pandas
 numpy
 langchain
-llama-cpp-python
 langchain-community
+langchain-openai
+openpyxl
+openai
+tqdm

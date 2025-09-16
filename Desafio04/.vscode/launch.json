@@ -14,7 +14,7 @@
             "args": [
                 "--model", "gpt-4o-mini",
                 "--base-dir", "dados/", 
-                "--out", "saida/VR_MENSAL_CALCULADA.xlsx"]
+                "--out", "saida/VR_MENSAL_05_2025.xlsx"]
         }
     ]
 }
